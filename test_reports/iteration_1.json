@@ -1,0 +1,33 @@
+{
+  "summary": "First-pass end-to-end T1 testing of the DelDOT DMV Casework hackathon dashboard. Backend endpoints (/api/stats, /api/cases with filters/sort, /api/cases/{id}, PATCH, /api/audit, POST /api/cases/import multipart, GET /api/cases/export/csv, POST /api/cases/reset) all respond 200 with expected shape. Frontend UI (Overview stat cards+histogram+classification mix, Queue with 60 rows and search filter reflecting in URL q param, Case Detail with priority-gauge/probability-bars/T0-T1 diff and 7 diff rows, decision + save notes, Audit log with entries, Import/Export controls + Download CSV) all functional. Non-determinative disclaimer visible on every visited page.",
+  "tested_scope": ["backend", "frontend", "integration"],
+  "passed": [
+    "GET /api/stats returns total=60, by_class {review_warranted:13, review_not_warranted:13, insufficient_evidence:34}, priority_bins length 10, shift_delta_count present, top_states, reviewer_status",
+    "GET /api/cases returns 60 cases with expected fields and filters (predicted_class=review_warranted&priority_band=high&sort=review_priority&order=desc returns 2 sorted correctly)",
+    "GET /api/cases/DE-100001 returns full nested t0/t1 with all 7 fields; unknown ID returns 404",
+    "PATCH /api/cases/DE-100001 updates reviewer_status/notes and returns updated case",
+    "GET /api/audit returns entries with candidate_id, action, reviewer_id, from_status, to_status, timestamp",
+    "POST /api/cases/reset seeds 60 mock cases; POST /api/cases/import (replace=true) round-trips 60 rows with 0 errors",
+    "GET /api/cases/export/csv returns text/csv with expected header columns",
+    "Frontend Overview renders stat cards (Total 60, High 2, Warranted 13, Shifts 13), histogram, classification breakdown",
+    "Frontend Queue lists 60 rows with priority bar, class badge, probability mini-bar, T0->T1 chip, reviewer status; search q reflects in URL and narrows results (q=DE-100001 -> 1 row)",
+    "Case Detail shows priority-gauge, probability-bars, t0-t1-diff with 7 diff-row entries; decision-confirmed_warranted updates status, save-notes shows success toast",
+    "Audit page lists audit-row entries after decisions",
+    "Import/Export page shows csv-file-input dropzone, reset-mock button, and Download CSV export link",
+    "Non-determinative disclaimer banner present on Overview, Queue, Case Detail, Audit, and Import/Export pages"
+  ],
+  "failed": [
+    {
+      "area": "Backend contract",
+      "issue": "GET /api/cases returns object {cases:[], total:n} instead of a plain array as stated in the review request. Frontend consumes data.cases, so UI works, but the spec wording says 'returns array of cases'.",
+      "evidence": "curl /api/cases -> {\"cases\":[...], \"total\":60}",
+      "priority": "LOW"
+    }
+  ],
+  "action_items": [
+    "Optional: clarify /api/cases response shape in spec (currently {cases,total}) or flatten to a plain array if strict spec compliance is desired."
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true
+}

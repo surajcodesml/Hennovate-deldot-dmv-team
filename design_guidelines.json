@@ -1,0 +1,190 @@
+{
+  "project_metadata": {
+    "title": "DelDOT DMV Potential Out-of-State Tag Holder Review System",
+    "theme": "Clean Government Operations Light Theme",
+    "archetype": "Swiss & High-Trust State Agency Operations",
+    "target_users": "DelDOT DMV compliance officers, casework analysts, and hackathon review judges",
+    "core_goal": "Provide high-trust, operational decision support to prioritize and review potential out-of-state tag holder candidates with phase T0/T1 evidence diffs, classification probabilities, 0-to-1 priority indicators, and auditable decision logging."
+  },
+  "typography": {
+    "header_font": "Outfit, sans-serif",
+    "body_font": "IBM Plex Sans, sans-serif",
+    "mono_font": "JetBrains Mono, monospace",
+    "scale": {
+      "h1": "text-3xl sm:text-4xl font-bold tracking-tight text-slate-900",
+      "h2": "text-xl sm:text-2xl font-semibold tracking-tight text-slate-900",
+      "h3": "text-lg font-semibold text-slate-800",
+      "h4": "text-base font-semibold text-slate-800",
+      "body": "text-sm text-slate-600 leading-relaxed",
+      "small_label": "text-xs font-medium uppercase tracking-wider text-slate-500",
+      "stat_value": "text-2xl sm:text-3xl font-extrabold tracking-tight"
+    }
+  },
+  "colors": {
+    "background": "#F8FAFC",
+    "surface": "#FFFFFF",
+    "surface_subtle": "#F1F5F9",
+    "surface_accent": "#E2E8F0",
+    "border": "#CBD5E1",
+    "border_light": "#E2E8F0",
+    "brand_primary": "#0F172A",
+    "brand_secondary": "#1E3A8A",
+    "brand_accent": "#2563EB",
+    "brand_highlight": "#3B82F6",
+    "text_primary": "#0F172A",
+    "text_secondary": "#475569",
+    "text_muted": "#64748B",
+    "classifications": {
+      "review_warranted": {
+        "label": "Review Warranted",
+        "bg": "bg-amber-50",
+        "text": "text-amber-800",
+        "border": "border-amber-300",
+        "badge_bg": "#FEF3C7",
+        "badge_text": "#92400E",
+        "badge_border": "#FCD34D"
+      },
+      "review_not_warranted": {
+        "label": "Review Not Warranted",
+        "bg": "bg-emerald-50",
+        "text": "text-emerald-800",
+        "border": "border-emerald-300",
+        "badge_bg": "#D1FAE5",
+        "badge_text": "#065F46",
+        "badge_border": "#6EE7B7"
+      },
+      "insufficient_evidence": {
+        "label": "Insufficient Evidence",
+        "bg": "bg-slate-100",
+        "text": "text-slate-800",
+        "border": "border-slate-300",
+        "badge_bg": "#F1F5F9",
+        "badge_text": "#334155",
+        "badge_border": "#CBD5E1"
+      }
+    },
+    "priority_gauge": {
+      "high_risk": {
+        "threshold": ">= 0.70",
+        "label": "High Priority",
+        "color": "#DC2626",
+        "bg": "#FEE2E2"
+      },
+      "medium_risk": {
+        "threshold": "0.40 - 0.69",
+        "label": "Moderate Priority",
+        "color": "#D97706",
+        "bg": "#FEF3C7"
+      },
+      "low_risk": {
+        "threshold": "< 0.40",
+        "label": "Low Priority",
+        "color": "#059669",
+        "bg": "#D1FAE5"
+      }
+    }
+  },
+  "layout_and_components": {
+    "header": {
+      "style": "Sticky top bar with glassmorphism backdrop-blur-md bg-white/90 border-b border-slate-200 z-50",
+      "branding": "Delaware Department of Transportation (DelDOT) DMV Casework Division",
+      "components": [
+        "Agency Title & Seal Badge",
+        "Navigation Tabs (Overview Dashboard, Case Queue, Case Workspace, CSV Import/Export, Audit Log)",
+        "Quick Stats Bar / Operational Status Indicator"
+      ]
+    },
+    "dashboard_overview": {
+      "metrics_cards": [
+        "Total Candidate Cases",
+        "Review Warranted Cases",
+        "Insufficient Evidence Cases",
+        "Review Not Warranted Cases",
+        "High Priority Alert Count (Score >= 0.70)",
+        "T0 -> T1 Shift Delta Count"
+      ],
+      "visuals": [
+        "Classification distribution bar chart",
+        "Priority score histogram / density curve",
+        "Top out-of-state tag indicator summary (e.g., PA, MD, NJ, VA tag counts)"
+      ]
+    },
+    "case_queue_table": {
+      "style": "Clean data-dense table with clear sticky header, sorting, pagination, search, and row highlight",
+      "columns": [
+        "Candidate ID",
+        "Phase (T0 / T1)",
+        "Review Priority (0 to 1 Gauge Bar)",
+        "Predicted Class (Badge)",
+        "Probability Breakdown (Warranted / Not Warranted / Insufficient)",
+        "T0 vs T1 Shift Status",
+        "Reviewer Action / Status",
+        "Actions (Inspect Case, Log Decision)"
+      ],
+      "filters": [
+        "Search candidate record ID",
+        "Classification Filter (All, review_warranted, review_not_warranted, insufficient_evidence)",
+        "Phase Filter (T0, T1, Both)",
+        "Priority Range Slider / Filter (High >= 0.7, Med 0.4-0.7, Low < 0.4)",
+        "Decision Status (Unreviewed, Flagged, Approved, Dismissed)"
+      ]
+    },
+    "case_detail_workspace": {
+      "layout": "2-column layout: Left column for Candidate Profile & Priority Score Gauge + Classification Probabilities; Right column for T0 vs T1 Phase Comparison Diff & Reviewer Decision Logger",
+      "t0_t1_diff_viewer": {
+        "description": "Side-by-side visual diff component showing evidence changes between T0 (initial observation) and T1 (subsequent observation). Highlights updated fields (e.g. out-of-state days count, toll gantries passed, DL match status, neighborhood parking frequency, vehicle registration status)",
+        "change_indicators": "Green badge for resolved items, Amber/Red for escalating indicators, Slate for unchanged baseline"
+      },
+      "priority_gauge_card": {
+        "description": "Radial semi-circle gauge or high-visibility progress indicator showing 0.00 to 1.00 review priority index with clear risk band markers and probability bar breakdown"
+      },
+      "decision_logging_form": {
+        "description": "Form allowing compliance analyst to log official decision (Confirm Review Warranted, Mark Review Not Warranted, Flag Insufficient Evidence), input reviewer notes, select case tags, and save to local storage/CSV audit stream with timestamp and reviewer ID"
+      }
+    },
+    "disclaimer_banner": {
+      "style": "High-trust informational disclaimer box with scale/shield icon",
+      "text": "NON-DETERMINATIVE DECISION SUPPORT: This platform provides predictive triage assistance based on machine learning probability models and phase delta evidence. Output probabilities and priority indicators DO NOT constitute automated legal, residency, tax, fee assessment, or enforcement actions. All decisions require human reviewer validation in accordance with DelDOT DMV administrative policy."
+    }
+  },
+  "csv_data_schema": {
+    "fields": [
+      "candidate_id",
+      "phase",
+      "review_priority",
+      "prob_review_warranted",
+      "prob_review_not_warranted",
+      "prob_insufficient_evidence",
+      "predicted_class",
+      "t0_days_observed",
+      "t1_days_observed",
+      "t0_out_of_state_tag_days",
+      "t1_out_of_state_tag_days",
+      "primary_state_detected",
+      "reviewer_status",
+      "reviewer_notes",
+      "last_updated"
+    ],
+    "export_format": "standard CSV download with custom filename timestamping"
+  },
+  "motion_and_interactions": {
+    "hover_states": "subtle slate hover highlights on rows, smooth card elevation shadow-sm to shadow-md",
+    "transitions": "transition-colors duration-200 ease-in-out for tabs, buttons, and state toggles",
+    "gauge_animation": "smooth filling progress for 0 to 1 indicator score",
+    "data_testid_convention": "All interactive buttons, filter inputs, table cells, modal triggers, and form fields MUST contain explicit data-testid attributes (kebab-case)."
+  },
+  "instructions_to_main_agent": [
+    "Build a robust, highly responsive React application with Tailwind CSS and Lucide React icons.",
+    "Ensure both mock dataset and user CSV upload functionality are seamlessly supported.",
+    "Implement full filtering, sorting, searching, detail drawer/view, side-by-side T0 vs T1 diff visualizer, probability bars, priority score gauges, note-taking, local storage persistence for reviewer decisions, and CSV export.",
+    "Maintain the light high-trust government aesthetic with DelDOT branding, clear badges, and non-determinative administrative legal disclaimers.",
+    "Verify all interactive buttons, inputs, tabs, table rows, and export triggers have accurate data-testid attributes."
+  ],
+  "image_urls": [
+    {
+      "url": "https://images.unsplash.com/photo-1722888896655-5a3b1c2b2394?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1Mjh8MHwxfHNlYXJjaHwyfHxEZWxhd2FyZSUyMHN0YXRlJTIwc2VhbCUyMGxhbmRtYXJrJTIwdHJhbnNwb3J0fGVufDB8fHx8MTc4NzA1OTY1N3ww&ixlib=rb-4.1.0&q=85",
+      "description": "Map of maryland and delaware region",
+      "category": "branding_context"
+    }
+  ]
+}
