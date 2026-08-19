@@ -13,7 +13,7 @@ function Kpi({ label, value, sub, icon: Icon, accent, testId }) {
       <div className="flex items-start justify-between">
         <div>
           <div className="text-[10px] uppercase tracking-widest font-semibold text-slate-500">{label}</div>
-          <div className="stat-value text-3xl mt-2" style={{ color: accent || "#F3F4F6" }}>{value}</div>
+          <div className="stat-value text-3xl mt-2" style={{ color: accent || "#0F172A" }}>{value}</div>
           {sub && <div className="text-xs text-slate-500 mt-1">{sub}</div>}
         </div>
         <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${accent || "#3B82F6"}18`, border: `1px solid ${accent || "#3B82F6"}33` }}>
@@ -92,7 +92,7 @@ export default function Overview() {
           ].map((k) => (
             <div key={k.label} className="p-3 rounded-md bg-[#0F141C] border border-[#1B222E]">
               <div className="text-[10px] uppercase tracking-widest text-slate-500">{k.label}</div>
-              <div className="stat-value text-xl mt-0.5" style={{ color: k.accent || "#F3F4F6" }}>
+              <div className="stat-value text-xl mt-0.5" style={{ color: k.accent || "#0F172A" }}>
                 {typeof k.value === "number" ? k.value.toLocaleString() : k.value}
               </div>
               {k.sub && <div className="text-[10px] text-slate-500 mt-0.5">{k.sub}</div>}

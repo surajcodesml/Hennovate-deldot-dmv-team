@@ -8,7 +8,7 @@ function Metric({ label, value, sub, accent }) {
   return (
     <div className="card-surface-elevated p-5">
       <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">{label}</div>
-      <div className="stat-value text-3xl mt-1" style={{ color: accent || "#F3F4F6" }}>{value}</div>
+      <div className="stat-value text-3xl mt-1" style={{ color: accent || "#0F172A" }}>{value}</div>
       {sub && <div className="text-xs text-slate-500 mt-1">{sub}</div>}
     </div>
   );

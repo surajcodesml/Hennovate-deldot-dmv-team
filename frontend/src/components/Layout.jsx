@@ -9,7 +9,7 @@ export default function Layout({ children }) {
   const [search, setSearch] = useState("");
 
   return (
-    <div className="min-h-screen bg-[#080B10] text-slate-200 flex" data-testid="app-layout">
+    <div className="min-h-screen bg-[#F5F7FA] text-slate-800 flex" data-testid="app-layout">
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
       <div className="flex-1 flex flex-col min-w-0">
         <TopHeader phase={phase} setPhase={setPhase} search={search} setSearch={setSearch} />
