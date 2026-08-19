@@ -4,6 +4,7 @@ import { Search, X, RefreshCw, Download, SlidersHorizontal, Tag as TagIcon, Chec
 import { fetchCases, fetchTags, fetchDataStatus, bulkAddTag, CLASSIFICATIONS, REVIEWER_STATUS_META, SUGGESTED_TAGS, exportCsvUrl } from "../lib/api";
 import { toast } from "sonner";
 import CaseTable from "../components/CaseTable";
+import EvidenceSearch from "../components/EvidenceSearch";
 import { Input } from "../components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Button } from "../components/ui/button";
@@ -150,6 +151,9 @@ export default function Queue({ presetClass, title = "Review Queue", accent = "#
           </Button>
         </div>
       </div>
+
+      {/* Prominent Evidence Search — directly below the page header */}
+      <EvidenceSearch />
 
       <div className="card-surface p-4">
         <div className="flex items-center gap-2 mb-3 text-xs uppercase tracking-widest text-slate-500 font-semibold">

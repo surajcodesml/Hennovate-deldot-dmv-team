@@ -371,9 +371,18 @@ async def bulk_add_tag(payload: BulkTagPayload):
 
 
 # ---- Evidence Search ----
+STATE_NAME_TO_CODE = {
+    "delaware": "DE", "pennsylvania": "PA", "maryland": "MD", "new jersey": "NJ",
+    "virginia": "VA", "new york": "NY", "ohio": "OH", "west virginia": "WV",
+    "north carolina": "NC", "florida": "FL", "texas": "TX", "district of columbia": "DC",
+}
+
+
 @api_router.get("/evidence/search")
 async def evidence_search(q: str = "", state: Optional[str] = None, source: Optional[str] = None, limit: int = 50):
     ql = q.strip().lower() if q else ""
+    # Expand common state names → codes so "Delaware" matches "DE"
+    ql_alt = STATE_NAME_TO_CODE.get(ql)
     matched = []
     seen_candidates = set()
     for r in store.evidence_flat:
@@ -383,7 +392,7 @@ async def evidence_search(q: str = "", state: Optional[str] = None, source: Opti
             continue
         if ql:
             hay = f"{r['candidate_id']} {r['source_record_id']} {r['vehicle_ref']} {r['state']} {r['event_type']}".lower()
-            if ql not in hay:
+            if ql not in hay and (not ql_alt or ql_alt.lower() not in hay):
                 continue
         matched.append(r)
         seen_candidates.add(r["candidate_id"])

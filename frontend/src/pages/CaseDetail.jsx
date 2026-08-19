@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft, Flag, ShieldCheck, HelpCircle, MessageSquare, Info,
   MapPin, IdCard, Car, Briefcase, Radio, ChevronRight, TrendingUp, TrendingDown, Minus, Tag as TagIcon, X, Plus, GitCompare
@@ -124,12 +124,22 @@ function TagEditor({ tags, onAdd, onRemove }) {
 export default function CaseDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [c, setC] = useState(null);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const params = new URLSearchParams(location.search);
+  const highlightKind = params.get("highlight") || "";
+  const highlightQ = params.get("q") || "";
+
   const reload = async () => { const d = await fetchCase(id); setC(d); setNotes(d.reviewer_notes || ""); };
   useEffect(() => { reload(); }, [id]);
+  useEffect(() => {
+    if (!c || !highlightKind) return;
+    const el = document.querySelector(`[data-testid="highlighted-evidence-${highlightKind}"]`);
+    if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 250);
+  }, [c, highlightKind]);
   if (!c) return <div className="p-10 text-slate-500" data-testid="loading">Loading case…</div>;
 
   const cls = CLASSIFICATIONS[c.predicted_class];
@@ -327,10 +337,20 @@ export default function CaseDetail() {
 
       <div>
         <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-2">Evidence</div>
-        <h3 className="font-display text-base font-semibold text-white mb-4">Evidence Records by Source</h3>
+        <h3 className="font-display text-base font-semibold text-white mb-4">
+          Evidence Records by Source
+          {highlightKind && (
+            <span className="ml-3 inline-flex items-center gap-1.5 px-2 py-0.5 rounded border border-cyan-500/40 bg-cyan-500/10 text-cyan-300 text-xs font-medium normal-case tracking-normal">
+              Highlighted from search: {EV_TYPES.find(t => t.key === highlightKind)?.label || highlightKind}
+              {highlightQ && <> · &ldquo;{highlightQ}&rdquo;</>}
+            </span>
+          )}
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {EV_TYPES.map((t) => (
-            <EvidenceCard key={t.key} type={t} records={c.evidence[t.key] || []} />
+            <div key={t.key} className={highlightKind === t.key ? "ring-2 ring-cyan-500/60 rounded-xl transition-shadow" : ""} data-testid={highlightKind === t.key ? `highlighted-evidence-${t.key}` : undefined}>
+              <EvidenceCard type={t} records={c.evidence[t.key] || []} />
+            </div>
           ))}
         </div>
       </div>
