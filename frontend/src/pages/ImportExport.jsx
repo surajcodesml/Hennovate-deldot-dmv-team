@@ -1,36 +1,16 @@
-import React, { useRef, useState } from "react";
-import { Upload, Download, RefreshCcw, FileCheck2, AlertTriangle } from "lucide-react";
-import { importCsv, exportCsvUrl, resetSeed } from "../lib/api";
-import { Button } from "../components/ui/button";
-import { Switch } from "../components/ui/switch";
-import { Label } from "../components/ui/label";
-import { toast } from "sonner";
+import React from "react";
+import { Download, Database, FileText, AlertTriangle } from "lucide-react";
+import { exportCsvUrl } from "../lib/api";
 
 export default function ImportExport() {
-  const fileRef = useRef(null);
-  const [file, setFile] = useState(null);
-  const [replace, setReplace] = useState(false);
-  const [result, setResult] = useState(null);
-  const [busy, setBusy] = useState(false);
-
-  const onUpload = async () => {
-    if (!file) return;
-    setBusy(true);
-    try { const r = await importCsv(file, replace); setResult(r); toast.success(`Imported ${r.imported} cases`); }
-    catch (e) { toast.error("Import failed"); } finally { setBusy(false); }
-  };
-  const onReset = async () => {
-    setBusy(true);
-    try { await resetSeed(); toast.success("Mock data restored"); setResult(null); } finally { setBusy(false); }
-  };
-
   return (
     <div className="space-y-5" data-testid="import-export-page">
       <div>
         <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Data Operations</div>
-        <h1 className="font-display text-2xl font-bold text-white">Import & Export</h1>
+        <h1 className="font-display text-2xl font-bold text-white">Export & Data Sources</h1>
         <p className="text-sm text-slate-400 mt-1">
-          Round-trip <code className="mono text-slate-300">case_predictions.csv</code> — upload predictions or export the current queue with analyst decisions.
+          Predictions are loaded directly from the repository&apos;s <code className="mono text-slate-300">outputs/case_predictions.csv</code>{" "}
+          and enriched with the evidence timeline. Analyst decisions and tags round-trip back through export.
         </p>
       </div>
 
@@ -38,48 +18,23 @@ export default function ImportExport() {
         <div className="card-surface-elevated p-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-md bg-blue-500/10 border border-blue-500/30 flex items-center justify-center">
-              <Upload className="w-5 h-5 text-blue-400" />
+              <Database className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Model → Dashboard</div>
-              <h3 className="font-display text-base font-semibold text-white">Import case_predictions.csv</h3>
+              <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Source</div>
+              <h3 className="font-display text-base font-semibold text-white">Live Repository Data</h3>
             </div>
           </div>
-
-          <div className="border-2 border-dashed border-[#232C3B] rounded-lg p-6 text-center hover:border-blue-500/40 transition-colors cursor-pointer bg-[#0F141C]"
-            onClick={() => fileRef.current?.click()} data-testid="dropzone">
-            <input ref={fileRef} type="file" accept=".csv" className="hidden" data-testid="csv-file-input"
-              onChange={(e) => setFile(e.target.files?.[0] || null)} />
-            <FileCheck2 className="w-8 h-8 text-slate-500 mx-auto mb-2" />
-            {file ? (
-              <div><div className="mono text-sm font-semibold text-white">{file.name}</div>
-                <div className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</div></div>
-            ) : (
-              <div><div className="text-sm text-slate-300 font-medium">Click to choose CSV file</div>
-                <div className="text-xs text-slate-500 mt-1">Required column: candidate_id</div></div>
-            )}
+          <ul className="space-y-2 text-sm text-slate-300">
+            <li className="flex items-start gap-2"><FileText className="w-3.5 h-3.5 mt-1 text-blue-400" /> <span><code className="mono">outputs/case_predictions.csv</code> — 24,000 prediction rows (12,000 candidates × T0 / T1)</span></li>
+            <li className="flex items-start gap-2"><FileText className="w-3.5 h-3.5 mt-1 text-blue-400" /> <span><code className="mono">data/processed/evidence_timeline.csv.gz</code> — 216,000 evidence records across 5 sources</span></li>
+            <li className="flex items-start gap-2"><FileText className="w-3.5 h-3.5 mt-1 text-blue-400" /> <span><code className="mono">models/metrics.json</code> — 5-fold OOF metrics for the selected model</span></li>
+            <li className="flex items-start gap-2"><FileText className="w-3.5 h-3.5 mt-1 text-blue-400" /> <span><code className="mono">outputs/prediction_metadata.json</code> — model version + timestamp</span></li>
+          </ul>
+          <div className="mt-4 rounded-md bg-blue-950/30 border border-blue-800/30 p-3 flex items-start gap-2 text-xs text-blue-200/80">
+            <AlertTriangle className="w-3.5 h-3.5 text-blue-400 mt-0.5 shrink-0" />
+            <span>Data is validated at startup — check the <strong>Data Status</strong> panel on the Dashboard.</span>
           </div>
-
-          <div className="flex items-center gap-2 mt-4 mb-4">
-            <Switch id="replace-toggle" checked={replace} onCheckedChange={setReplace} data-testid="replace-toggle" />
-            <Label htmlFor="replace-toggle" className="text-sm text-slate-300">Replace existing cases</Label>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button onClick={onUpload} disabled={!file || busy} data-testid="upload-button" className="bg-blue-600 hover:bg-blue-500 text-white">
-              <Upload className="w-4 h-4 mr-1.5" /> {busy ? "Uploading…" : "Upload & Import"}
-            </Button>
-            <Button variant="outline" onClick={onReset} disabled={busy} data-testid="reset-mock"
-              className="bg-[#121821] border-[#232C3B] text-slate-300 hover:bg-[#1B222E] hover:text-white">
-              <RefreshCcw className="w-4 h-4 mr-1.5" /> Reset to Mock Data
-            </Button>
-          </div>
-
-          {result && (
-            <div className="mt-4 p-3 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-sm" data-testid="import-result">
-              <div className="font-semibold text-emerald-300">Import complete — {result.imported} case{result.imported === 1 ? "" : "s"}</div>
-            </div>
-          )}
         </div>
 
         <div className="card-surface-elevated p-5">
@@ -93,7 +48,8 @@ export default function ImportExport() {
             </div>
           </div>
           <p className="text-sm text-slate-400 leading-relaxed mb-4">
-            Download the full case set including original model outputs and analyst decisions. Matches the submission schema.
+            Download the full 24,000-row dataset in the original submission schema:
+            <code className="mono text-slate-300 block mt-2 text-xs">candidate_record_id, phase, predicted_class, p_review_warranted, p_review_not_warranted, p_insufficient_evidence, review_priority</code>
           </p>
           <a href={exportCsvUrl()}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition-colors"

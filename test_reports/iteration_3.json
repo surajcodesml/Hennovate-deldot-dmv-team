@@ -1,0 +1,29 @@
+{
+  "summary": "Full backend + frontend E2E validation of the real-data integration (24k predictions / 12k candidates / 216k evidence / models/metrics.json). Backend: 17/17 pytest tests pass covering GET /api/data/status (24000/24000/12000/12000/12000/216000, model_version present, warnings=[]), /api/stats?phase=T1 (total=12000, by_class sums to 12000, priority + priority_bins len 10, confidence_bins len 10, avg_confidence, changes 6 keys, evidence_coverage 5 sources, evidence_strength), /api/stats?phase=T0 (different by_class), /api/cases with limit=25 pagination + total=12000, sort desc, search q substring, class + evidence_strength + phase filters, /api/cases/CAN-B6WV6HQ3JW detail with t0/t1 sub-objects + grouped evidence + explanations, 404 case, PATCH reviewer_state + audit snapshot with predicted_class/probs, tag lifecycle (POST add, GET /api/tags list with counts, filter cases by tag, DELETE remove), /api/cases/compare/{a}/{b} returning {a,b} full details, /api/model/performance real metrics (log_loss 0.925, brier 0.557, macro_f1 0.542, ECE 0.067) with 3x3 confusion matrix + per_class incl insufficient_information + calibration array + model_comparison, /api/cases/export/csv returning 24000 rows in original schema with 'insufficient_evidence' preserved. Frontend: Dashboard Data Status panel shows green Live Dataset Validated with all validation counts (24k/12k/12k/12k/216k, T1 warranted 3,995 / insufficient 2,759), no warnings, KPIs match (Total 12,000, Warranted 3,995 33.3%, Not Warranted 5,246 43.7%, Insufficient 2,759 23.0%, High Priority 0, Avg Confidence 48.3%). Sidebar shows Case Comparison item /compare. Queue shows real CAN- IDs, queue-counts '12,000 cases · Warranted 3,995 · Not Warranted 5,246 · Insufficient 2,759', phase-tabs (ALL/T0/T1), filter-tag dropdown, 25 rows per page. Category pages show correct counts (3,995 / 5,246 / 2,759). Case Detail /case/CAN-B6WV6HQ3JW renders real evidence timeline grouped by source with real dates, real explanations; TagEditor works: tag-input+tag-add adds chip, tag-remove-{tag} removes, suggested-Address Conflict adds tag. open-compare button present. /compare page renders picker-candidate-a/b, options load, compare-side-A, compare-side-B, compare-deltas all present. /model page shows real 0.925/0.557/0.542/0.067 + real 3x3 confusion + per-class incl Insufficient Information + calibration chart. /audit list has entries. /import-export shows 'Live Repository Data' info + Export CSV link. Decision Support Only disclaimer-banner visible on every route.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "All chart pages", "issues": ["Recharts 'width(-1)/height(-1)' warnings persist on first render (cosmetic, carried over from iteration 2)."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py list_cases pulls entire reviewer_state collection (to_list 20000) per request — fine at 12k but pre-load a set/dict of only ids under active filters if scale grows.",
+    "server.py sort in list_cases is a full Python sort over 12k dicts per request — acceptable but consider caching by sort_by key.",
+    "data_status renames class keys but leaves both by_class_t1 and by_class_t0 in payload — spec only calls out by_class_t1 checks; retaining T0 is fine and useful.",
+    "CSV export streams full 24k rows synchronously via StringIO in memory — OK at this size but for larger datasets switch to true streaming generator.",
+    "picker-input-candidate-a data-testid is not rendered once a candidate is preselected via ?a= query param (input replaced by chip). Not a bug — expected UI, but test scripts should target picker-input-candidate-b or clear A first."
+  ],
+  "updated_files": ["/app/backend/tests/test_api.py"],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "100%"},
+  "seed_data_creation": "Uses real repo data loaded on backend startup from /app/backend/data/. Tests write TEST_* reviewer_notes and TEST_Address_Conflict tag on CAN-B6WV6HQ3JW; tag cleaned up in same test.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Real data pipeline is fully integrated and validated end-to-end. Sample high-priority T1 warranted candidate CAN-B6WV6HQ3JW is reliable for detail/patch/tag/compare tests. Backend loads on startup (~few seconds); no reset endpoint needed. Only remaining console warnings are cosmetic Recharts initial-render size warnings."
+}

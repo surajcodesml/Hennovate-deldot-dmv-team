@@ -3,22 +3,21 @@ import axios from "axios";
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
 
-export const api = axios.create({ baseURL: API, timeout: 30000 });
+export const api = axios.create({ baseURL: API, timeout: 60000 });
 
-export const fetchStats = async () => (await api.get("/stats")).data;
+export const fetchStats = async (phase = "T1") => (await api.get("/stats", { params: { phase }})).data;
+export const fetchDataStatus = async () => (await api.get("/data/status")).data;
 export const fetchCases = async (p = {}) => (await api.get("/cases", { params: p })).data;
 export const fetchCase = async (id) => (await api.get(`/cases/${id}`)).data;
 export const updateCase = async (id, payload) => (await api.patch(`/cases/${id}`, payload)).data;
+export const addTag = async (id, tag) => (await api.post(`/cases/${id}/tags`, { tag })).data;
+export const removeTag = async (id, tag) => (await api.delete(`/cases/${id}/tags/${encodeURIComponent(tag)}`)).data;
+export const fetchTags = async () => (await api.get(`/tags`)).data;
 export const fetchAudit = async () => (await api.get("/audit")).data;
 export const fetchAuditEntry = async (id) => (await api.get(`/audit/${id}`)).data;
 export const fetchModelPerf = async () => (await api.get("/model/performance")).data;
-export const importCsv = async (file, replace = false) => {
-  const fd = new FormData(); fd.append("file", file);
-  return (await api.post(`/cases/import?replace=${replace}`, fd,
-    { headers: { "Content-Type": "multipart/form-data" }})).data;
-};
+export const compareCases = async (a, b) => (await api.get(`/cases/compare/${a}/${b}`)).data;
 export const exportCsvUrl = () => `${API}/cases/export/csv`;
-export const resetSeed = async () => (await api.post(`/cases/reset`)).data;
 
 export const CLASSIFICATIONS = {
   review_warranted: {
@@ -51,10 +50,12 @@ export const REVIEWER_STATUS_META = {
   confirmed_not_warranted: { label: "Confirmed Not Warranted", color: "#059669" },
 };
 
-export const EVIDENCE_META = {
-  address: { label: "Address Records", color: "#3B82F6", icon: "MapPin" },
-  credential: { label: "Credential Records", color: "#8B5CF6", icon: "IdCard" },
-  vehicle_title: { label: "Vehicle Title Records", color: "#06B6D4", icon: "Car" },
-  work: { label: "Work Records", color: "#F59E0B", icon: "Briefcase" },
-  external: { label: "External Records", color: "#EC4899", icon: "Radio" },
-};
+export const SUGGESTED_TAGS = [
+  "Address Conflict",
+  "Residency Signal",
+  "Missing Evidence",
+  "Strong Delaware Evidence",
+  "Conflicting Records",
+  "High Priority",
+  "Needs Follow-Up",
+];
