@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { fetchStats, fetchDataStatus, CLASSIFICATIONS } from "../lib/api";
+import { fetchStats, fetchDataStatus, searchEvidence, CLASSIFICATIONS } from "../lib/api";
 import {
   Activity, AlertOctagon, ShieldCheck, HelpCircle, TrendingUp, Layers, ArrowRight,
-  MapPin, IdCard, Car, Briefcase, Radio, Database, CheckCircle2, AlertTriangle
+  MapPin, IdCard, Car, Briefcase, Radio, Database, CheckCircle2, AlertTriangle, Search, Filter
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { Input } from "../components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
 function Kpi({ label, value, sub, icon: Icon, accent, testId }) {
   return (
@@ -35,6 +37,128 @@ const CHANGE_LABELS = [
 const EV_ICONS = { address: MapPin, credential: IdCard, vehicle_title: Car, work: Briefcase, external: Radio };
 const EV_COLORS = { address: "#3B82F6", credential: "#8B5CF6", vehicle_title: "#06B6D4", work: "#F59E0B", external: "#EC4899" };
 const EV_LABELS = { address: "Address", credential: "Credential", vehicle_title: "Vehicle Title", work: "Work", external: "External" };
+
+const SOURCE_META_EMB = {
+  address: { label: "Address", icon: MapPin, color: "#3B82F6" },
+  credential: { label: "Credential", icon: IdCard, color: "#8B5CF6" },
+  vehicle_title: { label: "Vehicle Title", icon: Car, color: "#06B6D4" },
+  work: { label: "Work", icon: Briefcase, color: "#F59E0B" },
+  external: { label: "External", icon: Radio, color: "#EC4899" },
+};
+const US_STATES_EMB = ["all", "DE", "PA", "MD", "NJ", "VA", "NY", "OH", "WV", "NC", "FL", "TX"];
+
+function EvidenceSearchPanel() {
+  const [q, setQ] = useState("");
+  const [source, setSource] = useState("all");
+  const [state, setState] = useState("all");
+  const [results, setResults] = useState({ records: [], total_matches: 0, candidates_matched: 0 });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      if (!q && source === "all" && state === "all") { setResults({ records: [], total_matches: 0, candidates_matched: 0 }); return; }
+      setLoading(true);
+      const params = { limit: 25 };
+      if (q) params.q = q;
+      if (source !== "all") params.source = source;
+      if (state !== "all") params.state = state;
+      const r = await searchEvidence(params);
+      setResults(r); setLoading(false);
+    }, 200);
+    return () => clearTimeout(t);
+  }, [q, source, state]);
+
+  return (
+    <div className="card-surface-elevated p-5" data-testid="evidence-search-panel">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div>
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Investigation</div>
+          <h3 className="font-display text-base font-semibold text-white flex items-center gap-2">
+            <Search className="w-4 h-4 text-cyan-400" /> Evidence Search
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Search across <span className="text-white font-semibold">216,000</span> evidence records — candidate IDs,
+            source records (LIC-, ADR-, TTL-, WRK-, EXT-), vehicle refs, states, and event types.
+          </p>
+        </div>
+        <div className="text-xs text-slate-400" data-testid="evidence-counts">
+          {loading ? "Searching…" : results.total_matches > 0 ? (
+            <>
+              <span className="mono font-semibold text-white">{results.total_matches.toLocaleString()}</span> records ·{" "}
+              <span className="mono font-semibold text-cyan-300">{results.candidates_matched.toLocaleString()}</span> candidates
+              {results.total_matches >= 25 && <span className="text-slate-500"> · first 25</span>}
+            </>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+        <div className="md:col-span-2 relative">
+          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)}
+            placeholder="e.g. CAN-B6WV6HQ3JW, LIC-874Z2AAGZU, VH-49369, DE"
+            className="pl-9 h-10 bg-[#0F141C] border-[#1E2633] text-slate-200 placeholder:text-slate-500" data-testid="evidence-search-input" />
+        </div>
+        <Select value={source} onValueChange={setSource}>
+          <SelectTrigger className="h-10 bg-[#0F141C] border-[#1E2633] text-slate-200" data-testid="evidence-source-filter"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sources</SelectItem>
+            {Object.entries(SOURCE_META_EMB).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={state} onValueChange={setState}>
+          <SelectTrigger className="h-10 bg-[#0F141C] border-[#1E2633] text-slate-200" data-testid="evidence-state-filter"><SelectValue /></SelectTrigger>
+          <SelectContent>{US_STATES_EMB.map(s => <SelectItem key={s} value={s}>{s === "all" ? "All States" : s}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+
+      <div className="rounded-lg border border-[#1E2633] overflow-hidden" data-testid="evidence-results">
+        <div className="grid grid-cols-12 bg-[#0F141C] border-b border-[#1E2633] px-4 py-2 text-[10px] uppercase tracking-widest font-semibold text-slate-500">
+          <div className="col-span-3">Candidate</div>
+          <div className="col-span-2">Source</div>
+          <div className="col-span-3">Source Record</div>
+          <div className="col-span-1">State</div>
+          <div className="col-span-2">Event</div>
+          <div className="col-span-1 text-right">Date</div>
+        </div>
+        {results.records.length === 0 && !loading && (
+          <div className="text-center py-10 text-slate-500 text-xs" data-testid="empty-search">
+            {q || source !== "all" || state !== "all"
+              ? "No evidence records matched."
+              : "Enter a search term or filter to explore evidence records."}
+          </div>
+        )}
+        {results.records.map((r, i) => {
+          const meta = SOURCE_META_EMB[r.kind];
+          const Icon = meta?.icon || Search;
+          return (
+            <Link key={i} to={`/case/${r.candidate_id}`}
+              className="grid grid-cols-12 px-4 py-2 border-b border-[#151B25] last:border-b-0 items-center text-xs row-hover"
+              data-testid={`evidence-row-${i}`}>
+              <div className="col-span-3 mono font-semibold text-white truncate">{r.candidate_id}</div>
+              <div className="col-span-2 flex items-center gap-1.5">
+                <Icon className="w-3 h-3" style={{ color: meta?.color }} />
+                <span className="text-slate-300">{meta?.label || r.kind}</span>
+              </div>
+              <div className="col-span-3 mono text-slate-400 truncate">
+                {r.source_record_id}
+                {r.vehicle_ref && <span className="ml-1.5 text-cyan-400">{r.vehicle_ref}</span>}
+              </div>
+              <div className="col-span-1">
+                <span className={`mono text-[10px] font-semibold px-1.5 py-0.5 rounded border ${
+                  r.state === "DE" ? "border-blue-500/30 bg-blue-500/10 text-blue-300"
+                  : "border-slate-500/30 bg-slate-500/10 text-slate-300"
+                }`}>{r.state}</span>
+              </div>
+              <div className="col-span-2 text-slate-400 truncate">{r.event_type || "—"}</div>
+              <div className="col-span-1 mono text-[10px] text-slate-500 text-right">{r.date}</div>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function Overview() {
   const [stats, setStats] = useState(null);
@@ -203,6 +327,9 @@ export default function Overview() {
           </div>
         </div>
       </div>
+
+      {/* Evidence Search */}
+      <EvidenceSearchPanel />
 
       {/* Evidence coverage */}
       <div className="card-surface-elevated p-5">
