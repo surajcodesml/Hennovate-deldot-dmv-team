@@ -34,7 +34,7 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         </div>
         {!collapsed && (
           <div className="leading-tight overflow-hidden">
-            <div className="text-[13px] font-bold text-white tracking-tight">DelDOT Casework</div>
+            <div className="text-[13px] font-bold text-white tracking-tight">Hencheck</div>
             <div className="text-[10px] uppercase tracking-widest text-slate-500">DMV Review Ops</div>
           </div>
         )}

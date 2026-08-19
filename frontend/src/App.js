@@ -15,6 +15,12 @@ import Compare from "./pages/Compare";
 import EvidenceSearch from "./pages/EvidenceSearch";
 
 function App() {
+  React.useEffect(() => {
+    const setTitle = () => { document.title = "Hencheck · DelDOT DMV Casework"; };
+    setTitle();
+    const id = setInterval(setTitle, 1000);
+    return () => clearInterval(id);
+  }, []);
   return (
     <div className="App">
       <BrowserRouter>

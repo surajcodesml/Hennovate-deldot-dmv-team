@@ -13,7 +13,7 @@ const titleFor = (path) => {
   if (path.startsWith("/audit")) return "Audit History";
   if (path.startsWith("/case")) return "Case Investigation";
   if (path.startsWith("/import")) return "Import / Export";
-  return "DelDOT DMV Casework";
+  return "Hencheck";
 };
 
 export default function TopHeader({ phase, setPhase, search, setSearch }) {
@@ -24,7 +24,7 @@ export default function TopHeader({ phase, setPhase, search, setSearch }) {
       className="h-16 border-b border-[#1E2633] bg-[#0B0F16]/80 backdrop-blur-md sticky top-0 z-40 flex items-center px-6 gap-4"
     >
       <div className="flex-1">
-        <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">Delaware DMV · Casework</div>
+        <div className="text-[10px] uppercase tracking-widest text-slate-500 font-medium">Delaware DMV · Hencheck</div>
         <h1 className="font-display text-lg font-semibold text-white leading-tight" data-testid="page-title">
           {titleFor(loc.pathname)}
         </h1>
