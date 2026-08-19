@@ -56,15 +56,22 @@ function SortHeader({ label, k, sortBy, sortDir, onSort }) {
   );
 }
 
-export default function CaseTable({ cases, sortBy, sortDir, onSort, showPhase = true }) {
+export default function CaseTable({ cases, sortBy, sortDir, onSort, showPhase = true, selection, onToggleSelect, onToggleSelectAll }) {
   const navigate = useNavigate();
   const sh = (label, k) => <SortHeader label={label} k={k} sortBy={sortBy} sortDir={sortDir} onSort={onSort} />;
+  const allSelected = selection && cases.length > 0 && cases.every(c => selection.has(c.candidate_id));
   return (
     <div className="card-surface overflow-hidden" data-testid="case-table">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[1500px]">
+        <table className="w-full text-sm min-w-[1550px]">
           <thead className="bg-[#0F141C] border-b border-[#1E2633]">
             <tr className="text-left">
+              {selection && (
+                <th className="px-3 py-3 w-8">
+                  <input type="checkbox" checked={allSelected} onChange={() => onToggleSelectAll?.(cases)}
+                    data-testid="select-all" className="w-3.5 h-3.5 accent-cyan-500 cursor-pointer" />
+                </th>
+              )}
               <th className="px-4 py-3">{sh("Priority", "review_priority")}</th>
               <th className="px-4 py-3">{sh("Candidate ID", "candidate_id")}</th>
               {showPhase && <th className="px-4 py-3">{sh("Phase", "phase")}</th>}
@@ -81,11 +88,18 @@ export default function CaseTable({ cases, sortBy, sortDir, onSort, showPhase = 
           </thead>
           <tbody>
             {cases.length === 0 && (
-              <tr><td colSpan={showPhase ? 12 : 11} className="text-center py-16 text-slate-500" data-testid="empty-cases">No cases matching filters.</td></tr>
+              <tr><td colSpan={selection ? (showPhase ? 13 : 12) : (showPhase ? 12 : 11)} className="text-center py-16 text-slate-500" data-testid="empty-cases">No cases matching filters.</td></tr>
             )}
-            {cases.map((c) => (
-              <tr key={`${c.candidate_id}-${c.phase}`} className="border-b border-[#151B25] last:border-b-0 row-hover cursor-pointer"
+            {cases.map((c) => {
+              const checked = selection?.has(c.candidate_id);
+              return (
+              <tr key={`${c.candidate_id}-${c.phase}`} className={`border-b border-[#151B25] last:border-b-0 row-hover cursor-pointer ${checked ? "bg-cyan-500/5" : ""}`}
                 data-testid={`case-row-${c.candidate_id}`} onClick={() => navigate(`/case/${c.candidate_id}`)}>
+                {selection && (
+                  <td className="px-3 py-3" onClick={(e) => { e.stopPropagation(); onToggleSelect?.(c.candidate_id); }}>
+                    <input type="checkbox" checked={!!checked} readOnly data-testid={`select-${c.candidate_id}`} className="w-3.5 h-3.5 accent-cyan-500 cursor-pointer" />
+                  </td>
+                )}
                 <td className="px-4 py-3"><PriorityBadge value={c.review_priority} /></td>
                 <td className="px-4 py-3 mono font-semibold text-white text-xs">{c.candidate_id}</td>
                 {showPhase && <td className="px-4 py-3"><span className="mono text-xs font-semibold text-blue-300 px-2 py-0.5 rounded border border-blue-500/30 bg-blue-500/10">{c.phase}</span></td>}
@@ -104,7 +118,7 @@ export default function CaseTable({ cases, sortBy, sortDir, onSort, showPhase = 
                   </Button>
                 </td>
               </tr>
-            ))}
+            );})}
           </tbody>
         </table>
       </div>

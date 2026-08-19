@@ -7,6 +7,7 @@ import {
 import { fetchCase, updateCase, addTag, removeTag, CLASSIFICATIONS, REVIEWER_STATUS_META, priorityBand, SUGGESTED_TAGS } from "../lib/api";
 import PriorityGauge from "../components/PriorityGauge";
 import ProbabilityBars from "../components/ProbabilityBars";
+import FeatureImportance from "../components/FeatureImportance";
 import { Button } from "../components/ui/button";
 import { Textarea } from "../components/ui/textarea";
 import { Input } from "../components/ui/input";
@@ -239,6 +240,8 @@ export default function CaseDetail() {
               <span><span className="font-semibold uppercase tracking-widest text-amber-300">Decision Support Only —</span> Not a determination of residency, violations, penalties, fees, guilt, or enforcement actions.</span>
             </div>
           </div>
+          {/* Feature Importance */}
+          <FeatureImportance candidateId={c.candidate_id} />
           {/* Tags */}
           <div className="card-surface-elevated p-5">
             <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Annotations</div>

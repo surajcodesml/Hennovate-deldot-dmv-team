@@ -17,6 +17,9 @@ export const fetchAudit = async () => (await api.get("/audit")).data;
 export const fetchAuditEntry = async (id) => (await api.get(`/audit/${id}`)).data;
 export const fetchModelPerf = async () => (await api.get("/model/performance")).data;
 export const compareCases = async (a, b) => (await api.get(`/cases/compare/${a}/${b}`)).data;
+export const bulkAddTag = async (candidate_ids, tag) => (await api.post(`/tags/bulk`, { candidate_ids, tag })).data;
+export const searchEvidence = async (params) => (await api.get(`/evidence/search`, { params })).data;
+export const fetchFeatureImportance = async (id) => (await api.get(`/cases/${id}/feature-importance`)).data;
 export const exportCsvUrl = () => `${API}/cases/export/csv`;
 
 export const CLASSIFICATIONS = {

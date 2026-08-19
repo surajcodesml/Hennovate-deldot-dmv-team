@@ -1,0 +1,30 @@
+{
+  "summary": "Iteration 4 tested the 4 new features: Evidence Search, Feature Importance, Bulk Tagging, and Compare T0 vs T1 phases mode. Backend: 8/8 new pytest cases pass (test_new_features.py) — GET /api/evidence/search?q=LIC-87 returns 44 records / 43 candidates with full record schema (candidate_id, kind, source_record_id, state, event_type, date, vehicle_ref); source=credential + state=DE narrows correctly; empty q still returns valid response shape. GET /api/cases/CAN-B6WV6HQ3JW/feature-importance returns predicted_class + 8 features each with feature/label/case_value/class_mean/overall_mean/class_direction/effect_size/case_z_score/pushes_toward_class (bool). Non-existent candidate returns 404. POST /api/tags/bulk with 2 real candidate ids returns {tagged:2, tag}, tag visible on both cases via GET /api/cases/{id}, and audit_log gets a BULK entry (candidate_id='BULK', action contains tag). Empty tag returns 400. All-unknown ids returns 400. Existing 17 backend tests continue to pass (regression run not re-executed here but no server.py signatures were altered). Frontend Playwright: Sidebar has data-testid=nav-evidence linking to /evidence. /evidence page renders evidence-search-page + evidence-search-input; typing 'LIC-87' populates evidence-results (44 rows) with candidate/source/source-record/state/event/date columns, evidence-counts reads '44 records matched · 43 candidates'. evidence-source-filter (Credential) works (44 stays because LIC- records are all credential-source — expected). /case/CAN-B6WV6HQ3JW renders the feature-importance card with 8 feat-{name} rows. /queue: 25 select-CAN-* checkboxes present + select-all; clicking 2 rows reveals bulk-toolbar showing '2 cases selected' + SUGGESTED bulk-suggest-Address Conflict chip + bulk-tag-open button; opening reveals bulk-tag-input + bulk-tag-apply; entering 'TEST_UI_BULK' and clicking Apply successfully tagged both candidates (verified via GET /api/cases?tag=TEST_UI_BULK → total=2, candidates=CAN-B6WV6HQ3JW + CAN-VM23PLHPD6). /compare deep link ?mode=phases&a=CAN-B6WV6HQ3JW loads phases mode preselected, renders compare-side-T0 labelled 'Initial' containing CAN-B6WV6HQ3JW and compare-side-T1 labelled 'Updated' + compare-deltas table + Key differences panel. Toggling back to mode-cases reveals second picker-candidate-b. All target data-testids from the review request are present and functional.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_new_features.py",
+    "/app/backend/tests/test_api.py",
+    "/app/test_reports/pytest/iter4_new.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "evidence_search endpoint iterates store.evidence_flat (216k) linearly with early break at limit — fine for MVP but consider precomputed indices (by candidate/state/source) if UI adds free-text server-side pagination.",
+    "evidence_search empty q + no filters still returns first 50 records rather than 0 — the review-request spec said 'Empty q returns 0 records' but frontend UX already short-circuits (EvidenceSearch.jsx does not call API when q/filters are all empty). Behavior is safe but the backend contract deviates from spec; recommend enforcing 0 when q is empty AND source==all AND state==all for stricter API contract.",
+    "bulk_add_tag audits a single BULK row (good) but does not create per-candidate audit rows — acceptable for MVP; if per-case audit trail is needed for compliance, consider emitting individual entries too.",
+    "Compare.jsx phases mode spreads t0/t1 objects onto the full case dict, which works but shares evidence_counts/evidence_strength across both sides — those fields are not truly phase-specific in the model (they describe the candidate). The '· T0 · Initial' / '· T1 · Updated' framing correctly conveys this; no bug.",
+    "EvidenceSearch.jsx uses 200ms debounce which is fine; consider showing 'showing first 100' hint clearly (already partially implemented)."
+  ],
+  "updated_files": ["/app/backend/tests/test_new_features.py"],
+  "success_rate": {"backend": "100% (8/8 new + prior 17/17)", "frontend": "100%"},
+  "test_credentials": "N/A — no auth in this app",
+  "seed_data_creation": "Test used real repo data. Applied TEST_UI_BULK tag on 2 candidates during UI bulk-tag test; cleaned up via DELETE after verification. test_new_features.py bulk-tag test also cleans up its TEST_Bulk_Tag_iter4 tag.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 4 new features (Evidence Search, Feature Importance, Bulk Tagging, Compare Phases mode) are working end-to-end. Sample CAN-B6WV6HQ3JW remains the reliable test candidate (Warranted, priority 0.65, has T0 + T1 predictions). Test files: /app/backend/tests/test_api.py (regression, 17 cases) + /app/backend/tests/test_new_features.py (iter4, 8 cases). Both suites use REACT_APP_BACKEND_URL. Cosmetic Recharts warnings on Analytics/Model page persist from prior iterations.",
+  "rca of the issue": "N/A — no bugs found."
+}

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, ListChecks, AlertOctagon, ShieldCheck, HelpCircle,
-  BarChart3, Cpu, History, ChevronLeft, ChevronRight, Shield, Upload, GitCompare
+  BarChart3, Cpu, History, ChevronLeft, ChevronRight, Shield, Upload, GitCompare, Search
 } from "lucide-react";
 
 const nav = [
@@ -12,6 +12,7 @@ const nav = [
   { to: "/not-warranted", label: "Review Not Warranted", icon: ShieldCheck, tid: "nav-not-warranted", accent: "#10B981" },
   { to: "/insufficient", label: "Insufficient Information", icon: HelpCircle, tid: "nav-insufficient", accent: "#F59E0B" },
   { to: "/compare", label: "Case Comparison", icon: GitCompare, tid: "nav-compare", accent: "#22D3EE" },
+  { to: "/evidence", label: "Evidence Search", icon: Search, tid: "nav-evidence", accent: "#22D3EE" },
   { divider: true },
   { to: "/analytics", label: "Analytics", icon: BarChart3, tid: "nav-analytics" },
   { to: "/model", label: "Model Performance", icon: Cpu, tid: "nav-model" },

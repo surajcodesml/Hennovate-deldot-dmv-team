@@ -12,6 +12,7 @@ import Analytics from "./pages/Analytics";
 import ModelPerformance from "./pages/ModelPerformance";
 import CategoryQueue from "./pages/CategoryQueue";
 import Compare from "./pages/Compare";
+import EvidenceSearch from "./pages/EvidenceSearch";
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
             <Route path="/insufficient" element={<CategoryQueue classKey="insufficient_information" title="Insufficient Information" accent="#F59E0B" />} />
             <Route path="/case/:id" element={<CaseDetail />} />
             <Route path="/compare" element={<Compare />} />
+            <Route path="/evidence" element={<EvidenceSearch />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/model" element={<ModelPerformance />} />
             <Route path="/audit" element={<AuditLog />} />

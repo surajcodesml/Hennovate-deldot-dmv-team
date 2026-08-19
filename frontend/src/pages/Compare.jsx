@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Search, GitCompare, ArrowRight, X, TrendingUp, TrendingDown, Minus, Info } from "lucide-react";
-import { fetchCases, compareCases, CLASSIFICATIONS, priorityBand } from "../lib/api";
+import { fetchCases, fetchCase, compareCases, CLASSIFICATIONS, priorityBand } from "../lib/api";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 
@@ -81,14 +81,14 @@ function ClassBadgeInline({ cls }) {
   </span>;
 }
 
-function Side({ c, label }) {
+function Side({ c, label, labelSuffix = "" }) {
   if (!c) return null;
   const band = priorityBand(c.review_priority);
   return (
     <div className="card-surface-elevated p-5" data-testid={`compare-side-${label}`}>
       <div className="flex items-center justify-between mb-3">
         <div>
-          <div className="text-[10px] uppercase tracking-widest text-cyan-400 font-semibold">Candidate {label}</div>
+          <div className="text-[10px] uppercase tracking-widest text-cyan-400 font-semibold">Candidate {label}{labelSuffix && <span className="text-blue-400"> · {labelSuffix}</span>}</div>
           <div className="mono text-xl font-bold text-white">{c.candidate_id}</div>
         </div>
         <ClassBadgeInline cls={c.predicted_class} />
@@ -139,12 +139,13 @@ function Side({ c, label }) {
 
 export default function Compare() {
   const [sp, setSp] = useSearchParams();
+  const [mode, setMode] = useState(sp.get("mode") === "phases" ? "phases" : "cases");
   const [a, setA] = useState(null);
   const [b, setB] = useState(null);
+  const [singleCase, setSingleCase] = useState(null); // for phases mode
   const [pair, setPair] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Load from URL if given
   useEffect(() => {
     const ida = sp.get("a"); const idb = sp.get("b");
     if (ida && !a) fetchCases({ q: ida, limit: 1 }).then(d => d.cases[0] && setA(d.cases[0]));
@@ -153,11 +154,21 @@ export default function Compare() {
 
   useEffect(() => {
     const p = new URLSearchParams();
+    if (mode === "phases") p.set("mode", "phases");
     if (a) p.set("a", a.candidate_id); if (b) p.set("b", b.candidate_id);
     setSp(p, { replace: true });
-    if (a && b) { setLoading(true); compareCases(a.candidate_id, b.candidate_id).then(setPair).finally(() => setLoading(false)); }
-    else setPair(null);
-  }, [a, b]); // eslint-disable-line
+    if (mode === "cases" && a && b) {
+      setLoading(true); compareCases(a.candidate_id, b.candidate_id).then(setPair).finally(() => setLoading(false));
+    } else if (mode === "phases" && a) {
+      setLoading(true);
+      fetchCase(a.candidate_id).then((full) => {
+        const t0Side = { ...full, ...full.t0, phase: "T0" };
+        const t1Side = { ...full, ...full.t1, phase: "T1" };
+        setSingleCase(full);
+        setPair({ a: t0Side, b: t1Side });
+      }).finally(() => setLoading(false));
+    } else setPair(null);
+  }, [a, b, mode]); // eslint-disable-line
 
   const swap = () => { setA(b); setB(a); };
   const changes = pair ? [
@@ -179,24 +190,37 @@ export default function Compare() {
         <p className="text-sm text-slate-400 mt-1">Select two candidates to compare model outputs, evidence, and T0→T1 changes side by side.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <CasePicker label="Candidate A" value={a} onSelect={setA} />
-        <CasePicker label="Candidate B" value={b} onSelect={setB} />
+      {/* Mode toggle */}
+      <div className="inline-flex items-center bg-[#121821] border border-[#232C3B] rounded-md p-0.5" data-testid="compare-mode">
+        <button onClick={() => setMode("cases")} data-testid="mode-cases"
+          className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${mode === "cases" ? "bg-cyan-600 text-white" : "text-slate-400 hover:text-white"}`}>
+          Two Candidates
+        </button>
+        <button onClick={() => setMode("phases")} data-testid="mode-phases"
+          className={`px-3 py-1.5 text-xs font-semibold rounded transition-colors ${mode === "phases" ? "bg-cyan-600 text-white" : "text-slate-400 hover:text-white"}`}>
+          Same Candidate — T0 vs T1
+        </button>
       </div>
 
-      {a && b && (
+      <div className={`grid grid-cols-1 ${mode === "cases" ? "lg:grid-cols-2" : "lg:grid-cols-1"} gap-5`}>
+        <CasePicker label={mode === "phases" ? "Candidate" : "Candidate A"} value={a} onSelect={setA} />
+        {mode === "cases" && <CasePicker label="Candidate B" value={b} onSelect={setB} />}
+      </div>
+
+      {mode === "cases" && a && b && (
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={swap} data-testid="swap-cases"
             className="bg-[#121821] border-[#232C3B] text-slate-300 hover:bg-[#1B222E] hover:text-white">Swap A ↔ B</Button>
           {loading && <span className="text-xs text-slate-500">Loading comparison…</span>}
         </div>
       )}
+      {mode === "phases" && loading && <span className="text-xs text-slate-500">Loading T0 vs T1…</span>}
 
       {pair && (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <Side c={pair.a} label="A" />
-            <Side c={pair.b} label="B" />
+            <Side c={pair.a} label={mode === "phases" ? "T0" : "A"} labelSuffix={mode === "phases" ? "Initial" : ""} />
+            <Side c={pair.b} label={mode === "phases" ? "T1" : "B"} labelSuffix={mode === "phases" ? "Updated" : ""} />
           </div>
 
           <div className="card-surface-elevated p-5" data-testid="compare-deltas">

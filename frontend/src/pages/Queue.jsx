@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, X, RefreshCw, Download, SlidersHorizontal, Tag as TagIcon } from "lucide-react";
-import { fetchCases, fetchTags, fetchDataStatus, CLASSIFICATIONS, REVIEWER_STATUS_META, exportCsvUrl } from "../lib/api";
+import { Search, X, RefreshCw, Download, SlidersHorizontal, Tag as TagIcon, CheckSquare, Plus } from "lucide-react";
+import { fetchCases, fetchTags, fetchDataStatus, bulkAddTag, CLASSIFICATIONS, REVIEWER_STATUS_META, SUGGESTED_TAGS, exportCsvUrl } from "../lib/api";
+import { toast } from "sonner";
 import CaseTable from "../components/CaseTable";
 import { Input } from "../components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
@@ -24,7 +25,33 @@ export default function Queue({ presetClass, title = "Review Queue", accent = "#
   const [dataStatus, setDataStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
+  const [selection, setSelection] = useState(new Set());
+  const [bulkTag, setBulkTag] = useState("");
+  const [bulkOpen, setBulkOpen] = useState(false);
   const perPage = 25;
+
+  const toggleSelect = (id) => {
+    const s = new Set(selection);
+    if (s.has(id)) s.delete(id); else s.add(id);
+    setSelection(s);
+  };
+  const toggleSelectAll = (rows) => {
+    const s = new Set(selection);
+    const allChecked = rows.every(r => s.has(r.candidate_id));
+    if (allChecked) rows.forEach(r => s.delete(r.candidate_id));
+    else rows.forEach(r => s.add(r.candidate_id));
+    setSelection(s);
+  };
+  const applyBulkTag = async (tag) => {
+    const t = (tag || bulkTag || "").trim();
+    if (!t || selection.size === 0) return;
+    try {
+      const r = await bulkAddTag([...selection], t);
+      toast.success(`Tagged ${r.tagged} case${r.tagged === 1 ? "" : "s"} · ${t}`);
+      setBulkTag(""); setBulkOpen(false); setSelection(new Set());
+      load();
+    } catch { toast.error("Bulk tag failed"); }
+  };
 
   useEffect(() => { setPredicted(presetClass || "all"); }, [presetClass]);
   useEffect(() => { (async () => { setTagList((await fetchTags()).tags); setDataStatus(await fetchDataStatus()); })(); }, []);
@@ -179,7 +206,56 @@ export default function Queue({ presetClass, title = "Review Queue", accent = "#
         )}
       </div>
 
-      <CaseTable cases={cases} sortBy={sortBy} sortDir={sortDir} onSort={onSort} showPhase={phase === "ALL"} />
+      {/* Bulk toolbar */}
+      {selection.size > 0 && (
+        <div className="card-surface-elevated p-3 flex items-center justify-between flex-wrap gap-2" data-testid="bulk-toolbar">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-md bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center">
+              <CheckSquare className="w-4 h-4 text-cyan-400" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-white"><span className="mono">{selection.size}</span> case{selection.size===1?"":"s"} selected</div>
+              <div className="text-[11px] text-slate-500">Bulk actions don&apos;t change model predictions or make enforcement decisions.</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {bulkOpen ? (
+              <>
+                <input value={bulkTag} onChange={(e) => setBulkTag(e.target.value)} placeholder="Enter tag…"
+                  onKeyDown={(e) => e.key === "Enter" && applyBulkTag()}
+                  className="h-9 px-3 rounded-md bg-[#0F141C] border border-[#1E2633] text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50"
+                  data-testid="bulk-tag-input" />
+                <Button size="sm" onClick={() => applyBulkTag()} disabled={!bulkTag.trim()} data-testid="bulk-tag-apply"
+                  className="h-9 bg-cyan-600 hover:bg-cyan-500 text-white">Apply</Button>
+                <Button size="sm" variant="ghost" onClick={() => { setBulkOpen(false); setBulkTag(""); }}
+                  className="h-9 text-slate-400 hover:text-white">Cancel</Button>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {SUGGESTED_TAGS.slice(0, 4).map(t => (
+                    <button key={t} onClick={() => applyBulkTag(t)} data-testid={`bulk-suggest-${t}`}
+                      className="text-[11px] px-2 py-1 rounded border border-[#232C3B] bg-[#0F141C] text-slate-400 hover:text-cyan-300 hover:border-cyan-500/40 transition-colors">
+                      + {t}
+                    </button>
+                  ))}
+                </div>
+                <Button size="sm" onClick={() => setBulkOpen(true)} data-testid="bulk-tag-open"
+                  className="h-9 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300">
+                  <Plus className="w-3.5 h-3.5 mr-1" /> Custom tag
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setSelection(new Set())} data-testid="bulk-clear"
+                  className="h-9 bg-[#121821] border-[#232C3B] text-slate-300 hover:bg-[#1B222E] hover:text-white">
+                  <X className="w-3.5 h-3.5 mr-1" /> Clear
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      <CaseTable cases={cases} sortBy={sortBy} sortDir={sortDir} onSort={onSort} showPhase={phase === "ALL"}
+        selection={selection} onToggleSelect={toggleSelect} onToggleSelectAll={toggleSelectAll} />
 
       {total > perPage && (
         <div className="flex items-center justify-between text-xs text-slate-500" data-testid="pagination">

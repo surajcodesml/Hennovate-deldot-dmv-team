@@ -12,6 +12,11 @@ from collections import Counter
 
 from data_loader import store, CLASS_MAP_INV, EVIDENCE_KEYS
 
+
+class BulkTagPayload(BaseModel):
+    candidate_ids: List[str]
+    tag: str
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -331,6 +336,96 @@ async def list_tags():
     ]
     result = await db.reviewer_state.aggregate(pipeline).to_list(500)
     return {"tags": [{"tag": r["_id"], "count": r["count"]} for r in result]}
+
+
+# ---- Bulk Tagging ----
+@api_router.post("/tags/bulk")
+async def bulk_add_tag(payload: BulkTagPayload):
+    tag = payload.tag.strip()
+    if not tag:
+        raise HTTPException(400, "Empty tag")
+    now = datetime.now(timezone.utc).isoformat()
+    valid = [cid for cid in payload.candidate_ids if cid in store.cases]
+    if not valid:
+        raise HTTPException(400, "No valid candidates")
+    for cid in valid:
+        await db.reviewer_state.update_one(
+            {"candidate_id": cid},
+            {"$addToSet": {"reviewer_tags": tag}, "$set": {"last_updated": now, "candidate_id": cid}},
+            upsert=True,
+        )
+    await db.audit_log.insert_one({
+        "id": f"BULK-{datetime.now(timezone.utc).timestamp()}",
+        "candidate_id": "BULK",
+        "phase": "-",
+        "model_version": store.metadata.get("model_version", ""),
+        "action": f"bulk_tag_add:{tag}",
+        "reviewer_id": "analyst_demo",
+        "from_status": "-",
+        "to_status": f"tagged_{len(valid)}",
+        "notes": f"Bulk added tag '{tag}' to {len(valid)} candidates",
+        "timestamp": now,
+        "snapshot": {"tag": tag, "count": len(valid)},
+    })
+    return {"tagged": len(valid), "tag": tag}
+
+
+# ---- Evidence Search ----
+@api_router.get("/evidence/search")
+async def evidence_search(q: str = "", state: Optional[str] = None, source: Optional[str] = None, limit: int = 50):
+    ql = q.strip().lower() if q else ""
+    matched = []
+    seen_candidates = set()
+    for r in store.evidence_flat:
+        if source and source != "all" and r["kind"] != source:
+            continue
+        if state and state != "all" and r["state"] != state:
+            continue
+        if ql:
+            hay = f"{r['candidate_id']} {r['source_record_id']} {r['vehicle_ref']} {r['state']} {r['event_type']}".lower()
+            if ql not in hay:
+                continue
+        matched.append(r)
+        seen_candidates.add(r["candidate_id"])
+        if len(matched) >= limit:
+            break
+    return {"records": matched, "total_matches": len(matched), "candidates_matched": len(seen_candidates)}
+
+
+# ---- Feature Importance ----
+@api_router.get("/cases/{candidate_id}/feature-importance")
+async def feature_importance(candidate_id: str):
+    if candidate_id not in store.cases:
+        raise HTTPException(404, "Case not found")
+    if not store.feature_importance:
+        return {"features": [], "note": "Feature file not loaded"}
+    c = store.cases[candidate_id]
+    cls = c["predicted_class"]
+    top = store.feature_importance["top_by_class"].get(cls, [])
+    values = store.feature_importance["case_values"].get(candidate_id, {})
+    labels = store.feature_importance["feature_labels"]
+    out = []
+    for t in top:
+        f = t["feature"]
+        v = values.get(f, 0)
+        z = 0.0
+        stats = store.feature_importance["feature_stats"].get(f, {})
+        std = stats.get("overall_std", 1) or 1
+        z = round((v - t["overall_mean"]) / std, 2)
+        # Contribution direction: does this case's value push toward the class mean vs overall?
+        pushes_toward = (v > t["overall_mean"] and t["direction"] == "higher") or (v < t["overall_mean"] and t["direction"] == "lower")
+        out.append({
+            "feature": f,
+            "label": labels.get(f, f),
+            "case_value": round(float(v), 3),
+            "class_mean": t["class_mean"],
+            "overall_mean": t["overall_mean"],
+            "class_direction": t["direction"],
+            "effect_size": t["effect_size"],
+            "case_z_score": z,
+            "pushes_toward_class": pushes_toward,
+        })
+    return {"predicted_class": cls, "features": out}
 
 
 # ---- Case Comparison ----
