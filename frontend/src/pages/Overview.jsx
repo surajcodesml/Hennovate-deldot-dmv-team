@@ -1,224 +1,200 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { fetchStats, fetchCases, CLASSIFICATIONS, priorityBand } from "../lib/api";
-import { AlertTriangle, TrendingUp, MapPin, Activity, ArrowRight } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from "recharts";
+import { fetchStats, CLASSIFICATIONS, priorityBand } from "../lib/api";
+import {
+  Activity, AlertOctagon, ShieldCheck, HelpCircle, TrendingUp, Layers, ArrowRight,
+  MapPin, IdCard, Car, Briefcase, Radio
+} from "lucide-react";
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis,
+  CartesianGrid, LineChart, Line, Legend
+} from "recharts";
 
-function StatCard({ label, value, sub, accent, testId }) {
+function Kpi({ label, value, sub, icon: Icon, accent, testId }) {
   return (
-    <div
-      className="bg-white rounded-lg border border-slate-200 p-5 hover:shadow-sm transition-shadow"
-      data-testid={testId}
-    >
-      <div className="text-[11px] uppercase tracking-wider font-medium text-slate-500">{label}</div>
-      <div className="stat-value text-slate-900 mt-1" style={{ color: accent }}>{value}</div>
-      {sub && <div className="text-xs text-slate-500 mt-1">{sub}</div>}
+    <div className="card-surface-elevated p-5 hover-elevate" data-testid={testId}>
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="text-[10px] uppercase tracking-widest font-semibold text-slate-500">{label}</div>
+          <div className="stat-value text-3xl mt-2" style={{ color: accent || "#F3F4F6" }}>{value}</div>
+          {sub && <div className="text-xs text-slate-500 mt-1">{sub}</div>}
+        </div>
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${accent || "#3B82F6"}18`, border: `1px solid ${accent || "#3B82F6"}33` }}>
+          <Icon className="w-4.5 h-4.5" style={{ color: accent || "#60A5FA" }} />
+        </div>
+      </div>
     </div>
   );
 }
 
+const CHANGE_LABELS = [
+  { key: "warranted_to_not", label: "Warranted → Not Warranted", color: "#10B981" },
+  { key: "not_to_warranted", label: "Not Warranted → Warranted", color: "#EF4444" },
+  { key: "ii_to_warranted", label: "Insufficient → Warranted", color: "#F97316" },
+  { key: "ii_to_not", label: "Insufficient → Not Warranted", color: "#22D3EE" },
+  { key: "to_ii", label: "Any → Insufficient", color: "#F59E0B" },
+  { key: "no_change", label: "No Change", color: "#6B7280" },
+];
+
+const EV_ICONS = { address: MapPin, credential: IdCard, vehicle_title: Car, work: Briefcase, external: Radio };
+const EV_COLORS = { address: "#3B82F6", credential: "#8B5CF6", vehicle_title: "#06B6D4", work: "#F59E0B", external: "#EC4899" };
+const EV_LABELS = { address: "Address", credential: "Credential", vehicle_title: "Vehicle Title", work: "Work", external: "External" };
+
 export default function Overview() {
   const [stats, setStats] = useState(null);
-  const [topCases, setTopCases] = useState([]);
+  useEffect(() => { (async () => setStats(await fetchStats()))(); }, []);
+  if (!stats) return <div className="p-10 text-slate-500" data-testid="loading">Loading…</div>;
 
-  useEffect(() => {
-    (async () => {
-      const s = await fetchStats();
-      setStats(s);
-      const c = await fetchCases({ sort_by: "review_priority", sort_dir: "desc", limit: 5, priority_band: "high" });
-      setTopCases(c.cases);
-    })();
-  }, []);
-
-  if (!stats) return <div className="p-10 text-slate-400" data-testid="loading">Loading operational overview...</div>;
-
-  const classData = Object.entries(stats.by_class).map(([k, v]) => ({
-    name: CLASSIFICATIONS[k]?.label || k,
-    key: k,
-    count: v,
-    color: CLASSIFICATIONS[k]?.dot,
+  const donutData = Object.entries(stats.by_class).map(([k, v]) => ({
+    name: CLASSIFICATIONS[k].label, key: k, value: v, color: CLASSIFICATIONS[k].color,
   }));
-
-  const priorityData = (stats.priority_bins || []).map((n, i) => ({
-    bin: `${(i / 10).toFixed(1)}`,
-    count: n,
-  }));
+  const priorityBarData = [
+    { name: "Critical", count: stats.priority.critical, color: "#EF4444" },
+    { name: "High", count: stats.priority.high, color: "#F97316" },
+    { name: "Medium", count: stats.priority.medium, color: "#F59E0B" },
+    { name: "Low", count: stats.priority.low, color: "#10B981" },
+  ];
+  const confidenceData = (stats.confidence_bins || []).map((n, i) => ({ bin: `${(i/10).toFixed(1)}`, count: n }));
 
   return (
     <div className="space-y-6" data-testid="overview-page">
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">
-            Operations Overview
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Prioritized triage of candidate out-of-state tag holders across T0 and T1 evidence phases.
-          </p>
-        </div>
-        <Link
-          to="/queue"
-          data-testid="overview-open-queue"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800 transition-colors"
-        >
-          Open Case Queue <ArrowRight className="w-4 h-4" />
-        </Link>
+      {/* KPI grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        <Kpi testId="kpi-total" label="Total Cases" value={stats.total} sub="All phases" icon={Layers} accent="#60A5FA" />
+        <Kpi testId="kpi-warranted" label="Review Warranted" value={stats.by_class.review_warranted}
+          sub={`${((stats.by_class.review_warranted/stats.total)*100 || 0).toFixed(0)}% of total`} icon={AlertOctagon} accent="#EF4444" />
+        <Kpi testId="kpi-not-warranted" label="Not Warranted" value={stats.by_class.review_not_warranted}
+          sub={`${((stats.by_class.review_not_warranted/stats.total)*100 || 0).toFixed(0)}% of total`} icon={ShieldCheck} accent="#10B981" />
+        <Kpi testId="kpi-insufficient" label="Insufficient" value={stats.by_class.insufficient_information}
+          sub={`${((stats.by_class.insufficient_information/stats.total)*100 || 0).toFixed(0)}% of total`} icon={HelpCircle} accent="#F59E0B" />
+        <Kpi testId="kpi-high" label="High Priority" value={stats.priority.critical + stats.priority.high}
+          sub={`${stats.priority.critical} critical`} icon={TrendingUp} accent="#F97316" />
+        <Kpi testId="kpi-conf" label="Avg Confidence" value={`${(stats.avg_confidence*100).toFixed(1)}%`}
+          sub="Across all predictions" icon={Activity} accent="#22D3EE" />
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard testId="stat-total" label="Total Candidate Cases" value={stats.total} sub="Across all phases" />
-        <StatCard
-          testId="stat-high"
-          label="High Priority (≥ 0.70)"
-          value={stats.priority.high}
-          sub="Recommended for immediate review"
-          accent="#DC2626"
-        />
-        <StatCard
-          testId="stat-warranted"
-          label="Review Warranted"
-          value={stats.by_class.review_warranted}
-          sub="Flagged by model triage"
-          accent="#B45309"
-        />
-        <StatCard
-          testId="stat-shift"
-          label="T0 → T1 State Shifts"
-          value={stats.shift_delta_count}
-          sub="Primary state changed between phases"
-          accent="#1E3A8A"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg border border-slate-200 p-5 lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="text-[11px] uppercase tracking-wider font-medium text-slate-500">Distribution</div>
-              <h3 className="font-display text-lg font-semibold text-slate-900">Priority Score Histogram</h3>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <Activity className="w-4 h-4" /> 0.0 → 1.0 bins
-            </div>
-          </div>
-          <div className="h-64" data-testid="chart-priority-histogram">
+      {/* Charts row 1 */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="card-surface-elevated p-5">
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Distribution</div>
+          <h3 className="font-display text-base font-semibold text-white mt-1 mb-3">Case Distribution</h3>
+          <div className="h-56" data-testid="donut-chart">
             <ResponsiveContainer>
-              <BarChart data={priorityData} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
-                <XAxis dataKey="bin" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  cursor={{ fill: "#F1F5F9" }}
-                  contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E2E8F0" }}
-                />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                  {priorityData.map((entry, i) => {
-                    const p = i / 10;
-                    const c = priorityBand(p).color;
-                    return <Cell key={i} fill={c} />;
-                  })}
-                </Bar>
-              </BarChart>
+              <PieChart>
+                <Pie data={donutData} innerRadius={55} outerRadius={80} paddingAngle={2} dataKey="value">
+                  {donutData.map((d) => <Cell key={d.key} fill={d.color} stroke="#0B0F16" strokeWidth={2} />)}
+                </Pie>
+                <Tooltip contentStyle={{ background: "#121821", border: "1px solid #1E2633", borderRadius: 8, fontSize: 12 }} itemStyle={{ color: "#E5E7EB" }} />
+              </PieChart>
             </ResponsiveContainer>
           </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-slate-200 p-5">
-          <div className="text-[11px] uppercase tracking-wider font-medium text-slate-500">Classification Mix</div>
-          <h3 className="font-display text-lg font-semibold text-slate-900 mb-4">Predicted Class Breakdown</h3>
-          <div className="space-y-4" data-testid="class-breakdown">
-            {classData.map((d) => {
-              const pct = stats.total ? (d.count / stats.total) * 100 : 0;
-              return (
-                <div key={d.key}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="badge-dot" style={{ background: d.color }} />
-                      <span className="text-sm font-medium text-slate-700">{d.name}</span>
-                    </div>
-                    <span className="mono text-sm font-semibold text-slate-900">
-                      {d.count} <span className="text-slate-400 text-xs font-normal">({pct.toFixed(0)}%)</span>
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full gauge-fill" style={{ width: `${pct}%`, background: d.color }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg border border-slate-200 p-5">
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider font-medium text-slate-500">
-            <MapPin className="w-3.5 h-3.5" /> Top States (T1)
-          </div>
-          <h3 className="font-display text-lg font-semibold text-slate-900 mb-4">Detected Primary States</h3>
-          <div className="space-y-2" data-testid="top-states">
-            {stats.top_states.map((s) => (
-              <div key={s.state} className="flex items-center justify-between px-3 py-2 rounded-md bg-slate-50 border border-slate-100">
-                <div className="flex items-center gap-2">
-                  <span className="mono text-xs font-bold text-slate-700 px-2 py-0.5 bg-white border border-slate-200 rounded">{s.state}</span>
-                </div>
-                <span className="mono text-sm font-semibold text-slate-900">{s.count}</span>
+          <div className="space-y-1 mt-2">
+            {donutData.map((d) => (
+              <div key={d.key} className="flex items-center justify-between text-xs">
+                <span className="flex items-center gap-2 text-slate-300"><span className="badge-dot" style={{ background: d.color }} />{d.name}</span>
+                <span className="mono font-semibold text-white">{d.value}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-slate-200 p-5 lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider font-medium text-slate-500">
-                <TrendingUp className="w-3.5 h-3.5" /> Highest Priority
-              </div>
-              <h3 className="font-display text-lg font-semibold text-slate-900">Top Cases Requiring Attention</h3>
-            </div>
-            <Link to="/queue?band=high" className="text-xs font-semibold text-blue-700 hover:underline" data-testid="link-view-all-high">
-              View all →
-            </Link>
-          </div>
-          <div className="space-y-2" data-testid="top-cases">
-            {topCases.length === 0 && <div className="text-sm text-slate-400 py-6 text-center">No high priority cases</div>}
-            {topCases.map((c) => {
-              const band = priorityBand(c.review_priority);
-              const meta = CLASSIFICATIONS[c.predicted_class];
-              return (
-                <Link
-                  key={c.candidate_id}
-                  to={`/case/${c.candidate_id}`}
-                  data-testid={`top-case-${c.candidate_id}`}
-                  className="flex items-center justify-between p-3 rounded-md border border-slate-200 hover:border-slate-400 hover:bg-slate-50 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="mono font-semibold text-slate-900">{c.candidate_id}</div>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-xs font-semibold ${meta.bg} ${meta.text} ${meta.border}`}>
-                      <span className="badge-dot" style={{ background: meta.dot }} />
-                      {meta.label}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-24 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                      <div className="h-full gauge-fill" style={{ width: `${c.review_priority * 100}%`, background: band.color }} />
-                    </div>
-                    <span className="mono text-sm font-semibold w-10 text-right" style={{ color: band.color }}>
-                      {c.review_priority.toFixed(2)}
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
+        <div className="card-surface-elevated p-5 lg:col-span-2">
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Priority Distribution</div>
+          <h3 className="font-display text-base font-semibold text-white mt-1 mb-3">Review Priority Bands</h3>
+          <div className="h-64" data-testid="priority-bar-chart">
+            <ResponsiveContainer>
+              <BarChart data={priorityBarData} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E2633" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
+                <Tooltip cursor={{ fill: "#161D27" }} contentStyle={{ background: "#121821", border: "1px solid #1E2633", borderRadius: 8, fontSize: 12 }} itemStyle={{ color: "#E5E7EB" }} />
+                <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                  {priorityBarData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 flex items-start gap-3" data-testid="ops-notice">
-        <AlertTriangle className="w-4 h-4 text-blue-700 mt-0.5" />
-        <div className="text-xs text-blue-900 leading-relaxed">
-          <span className="font-semibold uppercase tracking-wider">Reminder — </span>
-          These indicators are triage aids only. Case priority reflects statistical likelihood based on phase evidence deltas
-          and does not represent a legal, residency, tax, fee, or enforcement determination. Analyst validation is required.
+      {/* Charts row 2 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="card-surface-elevated p-5">
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">T0 → T1</div>
+          <h3 className="font-display text-base font-semibold text-white mt-1 mb-4">Classification Changes</h3>
+          <div className="space-y-2.5" data-testid="changes-list">
+            {CHANGE_LABELS.map((c) => {
+              const v = stats.changes[c.key] || 0;
+              const pct = stats.total ? (v / stats.total) * 100 : 0;
+              return (
+                <div key={c.key}>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="flex items-center gap-2 text-slate-300">
+                      <span className="badge-dot" style={{ background: c.color }} />{c.label}
+                    </span>
+                    <span className="mono font-semibold text-white">{v}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-[#1B222E] overflow-hidden">
+                    <div className="h-full gauge-fill" style={{ width: `${pct}%`, background: c.color }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="card-surface-elevated p-5">
+          <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Model</div>
+          <h3 className="font-display text-base font-semibold text-white mt-1 mb-4">Confidence Distribution</h3>
+          <div className="h-56" data-testid="confidence-chart">
+            <ResponsiveContainer>
+              <BarChart data={confidenceData} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1E2633" vertical={false} />
+                <XAxis dataKey="bin" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
+                <Tooltip cursor={{ fill: "#161D27" }} contentStyle={{ background: "#121821", border: "1px solid #1E2633", borderRadius: 8, fontSize: 12 }} />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]} fill="#22D3EE" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Evidence coverage */}
+      <div className="card-surface-elevated p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold">Evidence</div>
+            <h3 className="font-display text-base font-semibold text-white">Coverage by Source</h3>
+          </div>
+          <Link to="/queue" data-testid="link-queue" className="text-xs font-semibold text-blue-400 hover:text-blue-300 inline-flex items-center gap-1">
+            Open Review Queue <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4" data-testid="evidence-coverage">
+          {Object.entries(stats.evidence_coverage).map(([k, n]) => {
+            const Icon = EV_ICONS[k];
+            const pct = stats.total ? (n / stats.total) * 100 : 0;
+            const color = EV_COLORS[k];
+            return (
+              <div key={k} className="p-4 rounded-lg bg-[#0F141C] border border-[#1E2633]">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-md flex items-center justify-center" style={{ background: `${color}18`, border: `1px solid ${color}44` }}>
+                    <Icon className="w-4 h-4" style={{ color }} />
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-widest text-slate-500">Evidence</div>
+                    <div className="text-xs font-semibold text-white">{EV_LABELS[k]}</div>
+                  </div>
+                </div>
+                <div className="stat-value text-2xl mt-3 text-white">{n}</div>
+                <div className="text-[11px] text-slate-500">{pct.toFixed(0)}% of cases</div>
+                <div className="h-1 rounded-full bg-[#1B222E] mt-2 overflow-hidden">
+                  <div className="h-full gauge-fill" style={{ width: `${pct}%`, background: color }} />
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

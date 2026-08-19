@@ -8,6 +8,9 @@ import Queue from "./pages/Queue";
 import CaseDetail from "./pages/CaseDetail";
 import ImportExport from "./pages/ImportExport";
 import AuditLog from "./pages/AuditLog";
+import Analytics from "./pages/Analytics";
+import ModelPerformance from "./pages/ModelPerformance";
+import CategoryQueue from "./pages/CategoryQueue";
 
 function App() {
   return (
@@ -17,12 +20,17 @@ function App() {
           <Routes>
             <Route path="/" element={<Overview />} />
             <Route path="/queue" element={<Queue />} />
+            <Route path="/warranted" element={<CategoryQueue classKey="review_warranted" title="Review Warranted" accent="#EF4444" />} />
+            <Route path="/not-warranted" element={<CategoryQueue classKey="review_not_warranted" title="Review Not Warranted" accent="#10B981" />} />
+            <Route path="/insufficient" element={<CategoryQueue classKey="insufficient_information" title="Insufficient Information" accent="#F59E0B" />} />
             <Route path="/case/:id" element={<CaseDetail />} />
-            <Route path="/import-export" element={<ImportExport />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/model" element={<ModelPerformance />} />
             <Route path="/audit" element={<AuditLog />} />
+            <Route path="/import-export" element={<ImportExport />} />
           </Routes>
         </Layout>
-        <Toaster position="bottom-right" richColors closeButton />
+        <Toaster theme="dark" position="bottom-right" richColors closeButton />
       </BrowserRouter>
     </div>
   );
